@@ -1,0 +1,235 @@
+import requests
+from bs4 import BeautifulSoup as bs
+import pandas as pd
+import time
+!pip install requests_html
+from requests_html import HTMLSession
+import csv
+import random
+import concurrent.futures
+
+#get the list of free proxies
+#get the list of free proxies
+def getProxies():
+  r = requests.get('https://free-proxy-list.net/')
+  soup = BeautifulSoup(r.content, 'html.parser')
+  table = soup.find('tbody')
+  proxies = []
+  for row in table:
+    if row.find_all('td')[4].text =='elite proxy':
+      proxy = ':'.join([row.find_all('td')[0].text, row.find_all('td')[1].text])
+      proxies.append(proxy)
+    else:
+      pass
+  return proxies
+
+def extract(proxy):
+  #this was for when we took a list into the function, without conc futures.
+  #proxy = random.choice(proxylist)
+  headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0'}
+  try:
+    #change the url to https://httpbin.org/ip that doesnt block anything
+    r = requests.get('https://httpbin.org/ip', headers=headers, proxies={'http' : proxy,'https': proxy}, timeout=1)
+  except requests.ConnectionError as err:
+    return proxy
+
+proxylist = getProxies()
+print(len(proxylist))
+
+#check them all with futures super quick
+with concurrent.futures.ThreadPoolExecutor() as executor:
+  executor.map(extract, proxylist)
+  
+  s = HTMLSession()
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0',
+    'Accept-Language':'en-GB,en;q=0.5',
+    'Referer': 'https://google.com',
+    'DNT': '1',
+    'John':'subtomeplease '
+}
+
+#FUCTION TO GENERATE THE URL OF EACH WEBPAGE UNIVERSITY
+def generate_url_university(university_name):
+  new_university_name=university_name.replace(" ","-")
+  base_url="https://www.niche.com/colleges/"
+  university_url= base_url+ new_university_name +'/'
+  return(university_url)
+  
+def get_univesities_names(page_url):
+  universities_names=[]
+  x = requests.get(page_url,headers=headers)
+  soup = BeautifulSoup(x.content, 'html.parser')
+  universities = soup.find_all( 'li', class_='search-results__list__item')
+  for university in universities:
+        university_name= university.find(class_="search-result__title").get_text()
+        universities_names.append(university_name)
+        time.sleep(2)
+  return(universities_names)
+  
+ def pagination(page):
+  page_url = url = f"https://www.niche.com/colleges/search/best-colleges/?page={page}"
+  return(page_url)
+  
+from numpy import random
+from time import sleep
+
+def parse_university(url):
+  
+  r = s.get(url,headers = headers)
+
+  try:
+    University_name=r.html.find('h1.postcard__title',first=True).text.strip()
+  except  AttributeError as err:
+    University_name='None'
+  
+  try:
+    nbre_reviews=r.html.find('span.review__stars__number__reviews',first=True).text.strip()
+  except  AttributeError as err:
+    nbre_reviews='None'
+
+  #University ID (You will be creating their IDs)
+  L= r.html.find("div.scalar__value")
+
+  try:
+    Application_deadline=L[3].text
+  except AttributeError as err:
+    Application_deadline = 'None'
+
+  try:
+    SAT_range=L[4].text
+  except AttributeError as err:
+    SAT_range= 'None'
+
+  try:
+    ACT_range=L[5].text
+  except AttributeError as err:
+    ACT_range= 'None'
+
+  try:
+    ACT_range=L[5].text
+  except AttributeError as err:
+    ACT_range= 'None'
+
+  try:
+    Application_fee=L[6].text 
+  except AttributeError as err:
+    Application_fee= 'None'
+
+  try:
+    SAT_or_ACT_required_or_not=L[7].text
+  except AttributeError as err:
+    SAT_or_ACT_required_or_not = 'None'
+
+  #Accepts common app (Yes/No)
+  Net_price_per_year=L[10].text
+  Average_aid_awarded_per_Year=L[11].text
+  Percentage_of_students_receiving_financial_aid=L[12].text
+
+  print("University_name: " + University_name)
+  print("nbre_reviews: " + nbre_reviews)
+  print("Application_deadline: "+ Application_deadline)
+  print('SAT_range: '+SAT_range)
+  print("ACT_range: ", ACT_range)
+  print("Application_fee: ", Application_fee)
+  print("SAT_or_ACT_required_or_not: " + SAT_or_ACT_required_or_not)
+  print("Net_price_per_year: "+ Net_price_per_year)
+
+  try:
+    Majors= r.html.find('ul.popular-entities-list')
+    X= Majors[1].text
+    XX=X.splitlines()
+    lenn= len (X.splitlines())
+    popular_majors = []
+    nbre_graduates= []
+
+    j=1
+    while j < lenn:
+      if (j % 2) == 0:
+        popular_majors.append (XX[j-2] )
+      if (j % 2) != 0:
+        nbre_graduates.append (XX[j])
+      j=j+1
+  except:
+    print("ouuups")
+
+  university = {
+      "University_name" : University_name,
+      "Application_deadline" :Application_deadline,
+      'SAT_range ': SAT_range,
+      "ACT_range ": ACT_range,
+      "Application_fee ": Application_fee,
+      "SAT_or_ACT_required_or_not " : SAT_or_ACT_required_or_not,
+      "Net_price_per_year ": Net_price_per_year,
+      "Average_aid_awarded_per_Year " : Average_aid_awarded_per_Year,
+      "Percentage_of_students_receiving_financial_aid " : Percentage_of_students_receiving_financial_aid,
+      'list of popular_majors ' : popular_majors,
+      "list of nbre_graduates ":nbre_graduates,
+      "nbre_reviews" : nbre_reviews,
+      
+  }
+
+  return(university)
+  
+  full_universities_names=[]
+List_of_urls=[]
+pp=1
+while pp != 135:
+  for p in range(pp,pp+10):
+    current_page=pagination(p)
+    print('current page is : ', current_page)
+    universities_names_in_current_page= get_univesities_names(current_page)
+    print(universities_names_in_current_page)
+    full_universities_names.append(universities_names_in_current_page)
+    print("**************")
+    time.sleep(random.uniform(2, 4))
+  for n in full_universities_names:
+    List_of_urls=generate_url_university(n)
+    time.sleep(random.uniform(1, 3))
+  time.sleep(600)
+  print("Now we wait the 10 minutes till the proxies are automatically updated")
+
+
+
+  #get the list of free proxies
+  def getProxies():
+    r = requests.get('https://free-proxy-list.net/')
+    soup = BeautifulSoup(r.content, 'html.parser')
+    table = soup.find('tbody')
+    proxies = []
+    for row in table:
+      if row.find_all('td')[4].text =='elite proxy':
+        proxy = ':'.join([row.find_all('td')[0].text, row.find_all('td')[1].text])
+        proxies.append(proxy)
+      else:
+        pass
+    return proxies
+
+  def extract(proxy):
+    #this was for when we took a list into the function, without conc futures.
+    #proxy = random.choice(proxylist)
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0'}
+    try:
+      #change the url to https://httpbin.org/ip that doesnt block anything
+      r = requests.get('https://httpbin.org/ip', headers=headers, proxies={'http' : proxy,'https': proxy}, timeout=1)
+    except requests.ConnectionError as err:
+      return proxy
+
+  proxylist = getProxies()
+  #print(len(proxylist))
+
+  #check them all with futures super quick
+  with concurrent.futures.ThreadPoolExecutor() as executor:
+          executor.map(extract, proxylist)
+  
+  
+  pp= pp +10
+  
+  file = open('inshllh_ye5dem.csv', 'w', newline='')
+writer = csv.writer(file)
+headers = ['university_name', "university_link "]
+data = [full_universities_names,List_of_urls]
+writer.writerow(headers)
+writer.writerows(data)
+
+
